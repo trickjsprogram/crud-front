@@ -1,5 +1,4 @@
-import logo from "./logo.svg";
-import { Switch, Route } from "react-router-dom";
+ import { Switch, Route } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import CreateTask from "./crud/index";

@@ -1,60 +1,92 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
-import { createTask, getTasks, removeTask } from "./api";
 import { Link } from "react-router-dom";
 import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
-import { Card } from "antd";
+import { useSelector, useDispatch } from "react-redux";
+import {
+  loadTaskStart,
+  createTaskStart,
+  setTaskEmpty,
+  deleteTaskStart,
+  setErrorMsgEmpty,
+  setEditTask,
+} from "../redux/task.actions";
 import Input from "./Input";
 
 const TaskCreate = () => {
-  const [task, setTask] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [tasks, setTasks] = useState([]);
+  const {
+    tasks,
+    loading,
+    error,
+    errorMsg,
+    taskName,
+    deleteTaskName,
+    editTask,
+  } = useSelector((state) => ({
+    ...state.app,
+  }));
+  const [task, setTask] = useState(taskName);
+  // const [loading, setLoading] = useState(false);
+  // const [tasks, setTasks] = useState([]);
+
+  const dispatch = useDispatch();
 
   useEffect(() => {
     loadTasks();
   }, []);
 
-  const loadTasks = () => getTasks().then((c) => setTasks(c.data));
+  useEffect(() => {
+    if (taskName) {
+      toast.success(`${taskName} is created`);
+      setTask("");
+      dispatch(setTaskEmpty());
+      loadTasks();
+    } else if (deleteTaskName) {
+      toast.success(`${deleteTaskName} is deleted`);
+      setTask("");
+      dispatch(setTaskEmpty());
+      loadTasks();
+    } else if (error && errorMsg) {
+      toast.error(error);
+      dispatch(setErrorMsgEmpty());
+      setTask("");
+    } else if (editTask) {
+      loadTasks();
+      dispatch(setTaskEmpty());
+    }
+  }, [taskName, error, deleteTaskName, editTask]);
+
+  const loadTasks = () => {
+    dispatch(loadTaskStart());
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     // console.log(name);
-    setLoading(true);
-    createTask({ task })
-      .then((res) => {
-        // console.log(res)
-        setLoading(false);
-        setTask("");
-        console.log("response", res);
-        toast.success(`"${res.data.task}" is created`);
-        loadTasks();
-      })
-      .catch((err) => {
-        console.log(err);
-        setLoading(false);
-        if (err.response.status === 400) toast.error(err.response.data);
+    let dupArray = [];
+    if (tasks) {
+      tasks.map((item) => {
+        if (item.task === task) {
+          toast.error(`${task} is already exists`);
+          dupArray.push(item);
+          setTask("");
+        }
       });
+
+      if (dupArray.length === 0) {
+        dispatch(createTaskStart({ task }));
+      }
+    }
   };
 
   const handleRemove = async (slug) => {
-    // let answer = window.confirm("Delete?");
-    // console.log(answer, slug);
     if (window.confirm("Delete?")) {
-      setLoading(true);
-      removeTask(slug)
-        .then((res) => {
-          setLoading(false);
-          toast.error(`${res.data.task} deleted`);
-          loadTasks();
-        })
-        .catch((err) => {
-          if (err.response.status === 400) {
-            setLoading(false);
-            toast.error(err.response.data);
-          }
-        });
+      dispatch(deleteTaskStart({ slug }));
     }
+  };
+
+  const handleEdit = (task) => {
+    dispatch(setEditTask(task));
   };
 
   // step 4
@@ -72,8 +104,6 @@ const TaskCreate = () => {
 
           <Input handleSubmit={handleSubmit} task={task} setTask={setTask} />
 
-          {/* step 5 */}
-
           {tasks.map((t) => (
             <div className="border row mx-2 align-items-center" key={t._id}>
               <ul className="list-group">
@@ -88,32 +118,14 @@ const TaskCreate = () => {
               </span>
               <Link to={`/update/${t.slug}`}>
                 <span className="btn btn-sm float-right">
-                  <EditOutlined className="text-warning" />
+                  <EditOutlined
+                    className="text-warning"
+                    onClick={() => handleEdit(t.task)}
+                  />
                 </span>
               </Link>
             </div>
           ))}
-          {/* {tasks.map((t) => (
-            <Card
-              type="inner"
-              title={t.task}
-              extra={
-                <>
-                  <span
-                    onClick={() => handleRemove(t.slug)}
-                    className="btn btn-sm float-right"
-                  >
-                    <DeleteOutlined className="text-danger" />
-                  </span>
-                  <Link to={`/update/${t.slug}`}>
-                    <span className="btn btn-sm float-right">
-                      <EditOutlined className="text-warning" />
-                    </span>
-                  </Link>
-                </>
-              }
-            />
-          ))} */}
         </div>
       </div>
     </div>

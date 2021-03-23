@@ -1,41 +1,31 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
-import { getTask, updateTask } from "./api";
+import { useSelector, useDispatch } from "react-redux";
+import { updateTaskStart, setEditTask } from "../redux/task.actions";
 import Input from "./Input";
 
 const TaskUpdate = ({ history, match }) => {
+  const { editTask, loading } = useSelector((state) => ({ ...state.app }));
   const [task, setTask] = useState("");
-  const [loading, setLoading] = useState(false);
+
+  const dispatch = useDispatch();
 
   useEffect(() => {
-    loadTask();
-  }, []);
-
-  console.log("task", task);
-  console.log("slug", match.params.slug);
-
-  
-
-  const loadTask = () =>
-    getTask(match.params.slug).then((c) => setTask(c.data.task) );
+    setTask(editTask);
+  }, [editTask]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     // console.log(name);
-    setLoading(true);
-    updateTask(match.params.slug, { task })
-      .then((res) => {
-        // console.log(res)
-        setLoading(false);
-        setTask("");
-        toast.success(`"${res.data.task}" is updated`);
-        history.push("/");
-      })
-      .catch((err) => {
-        console.log(err);
-        setLoading(false);
-        if (err.response.status === 400) toast.error(err.response.data);
-      });
+    let slug = match.params.slug;
+    if (task === editTask) {
+      toast.error("Task are same. Update failed");
+    } else {
+      dispatch(setEditTask(task));
+      dispatch(updateTaskStart({ slug, task }));
+      toast.success(`${task} is update successfully`);
+      history.push("/");
+    }
   };
 
   return (
@@ -48,11 +38,7 @@ const TaskUpdate = ({ history, match }) => {
             <h4>Update Task</h4>
           )}
 
-          <Input
-            handleSubmit={handleSubmit}
-            task={task}
-            setTask={setTask}
-          />
+          <Input handleSubmit={handleSubmit} task={task} setTask={setTask} />
 
           <hr />
         </div>
